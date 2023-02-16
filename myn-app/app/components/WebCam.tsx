@@ -18,6 +18,22 @@ const Button: FC<{ label: string; onClick: MouseEventHandler }> = ({
   );
 };
 
+export async function storeMedia(
+  presignedUrl: string,
+  media: Blob,
+): Promise<Response> {
+  const headers = new Headers({
+    'Content-Type': 'video/webm',
+    'Content-Length': media.size.toString()
+  });
+  const response = await fetch(presignedUrl, {
+    method: 'PUT',
+    headers: headers,
+    body: media,
+  });
+  return response;
+}
+
 export default function WebCam() {
   const [isShowVideo, setIsShowVideo] = useState(false);
   const webcamRef = useRef<any>(null);
@@ -67,18 +83,27 @@ export default function WebCam() {
         type: 'video/webm',
       });
       var headers = {
-        accept: '*/*'
+        accept: '*/*',
       };
       try {
         const formData = new FormData();
         formData.append('file', blob);
 
-        const response = await fetch('http://localhost:5162/interviews', {
-          mode: 'cors',
-          method: 'POST',
-          body: formData,
-          headers,
-        });
+
+        const url = `/api/upload?length=${blob.size}&fileName=mick.webm`;
+
+        const preSigned: Response = await fetch(url);
+
+        const preSignedData: { signedUrl: string } = await preSigned.json();
+
+        const response = await storeMedia(preSignedData.signedUrl, blob);
+
+        // const response = await fetch('http://localhost:5162/interviews', {
+        //   mode: 'cors',
+        //   method: 'POST',
+        //   body: formData,
+        //   headers,
+        // });
         console.log('SUCCESS', response.text());
         setRecordedChunks([]);
       } catch (error) {
